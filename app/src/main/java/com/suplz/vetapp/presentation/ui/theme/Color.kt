@@ -1,4 +1,4 @@
-package com.suplz.vetapp.ui.theme
+package com.suplz.vetapp.presentation.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
