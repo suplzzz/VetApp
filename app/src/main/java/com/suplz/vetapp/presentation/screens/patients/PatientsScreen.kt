@@ -17,6 +17,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +27,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,18 +41,47 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.suplz.vetapp.domain.Patient
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PatientsScreen(
     modifier: Modifier = Modifier,
     viewModel: PatientsViewModel = hiltViewModel(),
     onPatientClick: (Patient) -> Unit,
-    onAddPatientClick: () -> Unit
+    onAddPatientClick: () -> Unit,
+    onDoctorsClick: () -> Unit
 ) {
 
     val state by viewModel.state.collectAsState()
 
     Scaffold(
         modifier = modifier,
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "Пациенты",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                },
+                actions = {
+                    Button(
+                        onClick = onDoctorsClick,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                        ),
+                        modifier = Modifier.padding(end = 12.dp)
+                    ) {
+                        Text(
+                            text = "Врачи",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            )
+        },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = onAddPatientClick,
@@ -67,14 +100,8 @@ fun PatientsScreen(
             contentPadding = innerPadding
         ) {
             item {
-                Title(
-                    modifier = Modifier.padding(24.dp),
-                    text = "Пациенты"
-                )
-            }
-            item {
                 SearchBar(
-                    modifier = Modifier.padding(horizontal = 24.dp),
+                    modifier = Modifier.padding(start = 24.dp, end = 24.dp, bottom = 24.dp),
                     query = state.query,
                     onQueryChange = {
                         viewModel.processCommand(PatientsCommand.InputSearchQuery(it))
@@ -82,7 +109,7 @@ fun PatientsScreen(
                 )
             }
             item {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
             }
             items(
                 items = state.patients,
@@ -99,17 +126,6 @@ fun PatientsScreen(
             }
         }
     }
-}
-
-@Composable
-private fun Title(modifier: Modifier = Modifier, text: String) {
-    Text(
-        modifier = modifier,
-        text = text,
-        fontSize = 32.sp,
-        fontWeight = FontWeight.Bold,
-        color = MaterialTheme.colorScheme.onBackground
-    )
 }
 
 @Composable
