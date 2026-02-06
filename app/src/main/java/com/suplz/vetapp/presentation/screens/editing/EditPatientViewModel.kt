@@ -2,8 +2,11 @@ package com.suplz.vetapp.presentation.screens.editing
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.suplz.vetapp.domain.Appointment
+import com.suplz.vetapp.domain.DeleteAppointmentUseCase
 import com.suplz.vetapp.domain.DeletePatientUseCase
 import com.suplz.vetapp.domain.EditPatientUseCase
+import com.suplz.vetapp.domain.GetPatientAppointmentsUseCase
 import com.suplz.vetapp.domain.GetPatientUseCase
 import com.suplz.vetapp.domain.Patient
 import dagger.assisted.Assisted
@@ -12,6 +15,8 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -20,6 +25,8 @@ class EditPatientViewModel @AssistedInject constructor(
     private val editPatientUseCase: EditPatientUseCase,
     private val getPatientUseCase: GetPatientUseCase,
     private val deletePatientUseCase: DeletePatientUseCase,
+    private val getAppointmentsUseCase: GetPatientAppointmentsUseCase,
+    private val deleteAppointmentUseCase: DeleteAppointmentUseCase,
     @Assisted("patientId") private val patientId: Int
 ) : ViewModel() {
 
@@ -30,6 +37,14 @@ class EditPatientViewModel @AssistedInject constructor(
         viewModelScope.launch {
             val patient = getPatientUseCase(patientId)
             _state.update { EditPatientState.Editing(patient) }
+
+            getAppointmentsUseCase(patientId)
+                .onEach { appointments ->
+                    _state.update { prev ->
+                        if (prev is EditPatientState.Editing) prev.copy(appointments = appointments) else prev
+                    }
+                }
+                .launchIn(this)
         }
     }
 
@@ -62,6 +77,11 @@ class EditPatientViewModel @AssistedInject constructor(
                     }
                 }
             }
+            is EditPatientCommand.DeleteAppointment -> {
+                viewModelScope.launch {
+                    deleteAppointmentUseCase(command.appointmentId)
+                }
+            }
         }
     }
 
@@ -75,30 +95,21 @@ class EditPatientViewModel @AssistedInject constructor(
         }
     }
 
-    private fun validate(
-        state: EditPatientState = _state.value,
-        isFinal: Boolean = false
-    ): EditPatientState {
+    private fun validate(state: EditPatientState = _state.value, isFinal: Boolean = false): EditPatientState {
         if (state !is EditPatientState.Editing) return state
-
         val patient = state.patient
-        val nameError = if (patient.name.isBlank() && isFinal) "Кличка не может быть пустой" else null
-        val speciesError = if (patient.species.isBlank() && isFinal) "Вид не может быть пустым" else null
-        val ownerError = if (patient.ownerName.isBlank() && isFinal) "Имя владельца не может быть пустым" else null
-        val phoneError = if (patient.phoneNumber.isBlank() && isFinal) "Телефон не может быть пустым" else null
+        val nameError = if (patient.name.isBlank() && isFinal) "Ошибка" else null
+        val speciesError = if (patient.species.isBlank() && isFinal) "Ошибка" else null
+        val ownerError = if (patient.ownerName.isBlank() && isFinal) "Ошибка" else null
+        val phoneError = if (patient.phoneNumber.isBlank() && isFinal) "Ошибка" else null
 
         val newState = state.copy(
-            nameError = nameError,
-            speciesError = speciesError,
-            ownerNameError = ownerError,
-            phoneError = phoneError
+            nameError = nameError, speciesError = speciesError,
+            ownerNameError = ownerError, phoneError = phoneError
         )
-        if (!isFinal) {
-            _state.value = newState
-        }
+        if (!isFinal) _state.value = newState
         return newState
     }
-
 
     @AssistedFactory
     interface Factory {
@@ -115,12 +126,14 @@ sealed interface EditPatientCommand {
     data object Save : EditPatientCommand
     data object Delete : EditPatientCommand
     data object Back : EditPatientCommand
+    data class DeleteAppointment(val appointmentId: Int) : EditPatientCommand
 }
 
 sealed interface EditPatientState {
     data object Initial : EditPatientState
     data class Editing(
         val patient: Patient,
+        val appointments: List<Appointment> = emptyList(),
         val nameError: String? = null,
         val speciesError: String? = null,
         val ownerNameError: String? = null,
