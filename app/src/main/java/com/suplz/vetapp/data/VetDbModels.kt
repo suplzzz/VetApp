@@ -1,8 +1,10 @@
 package com.suplz.vetapp.data
 
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
+import androidx.room.Relation
 
 @Entity(tableName = "patients")
 data class PatientDbModel(
@@ -37,7 +39,7 @@ data class DoctorDbModel(
             entity = DoctorDbModel::class,
             parentColumns = ["id"],
             childColumns = ["doctorId"],
-            onDelete = ForeignKey.SET_NULL
+            onDelete = ForeignKey.CASCADE
         )
     ]
 )
@@ -45,8 +47,17 @@ data class AppointmentDbModel(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val patientId: Int,
-    val doctorId: Int?,
+    val doctorId: Int,
     val appointmentTime: Long,
     val diagnosis: String,
     val prescription: String
+)
+
+data class AppointmentWithDoctorTuple(
+    @Embedded val appointment: AppointmentDbModel,
+    @Relation(
+        parentColumn = "doctorId",
+        entityColumn = "id"
+    )
+    val doctor: DoctorDbModel
 )

@@ -9,7 +9,7 @@ import androidx.room.RoomDatabase
         DoctorDbModel::class,
         AppointmentDbModel::class
     ],
-    version = 1,
+    version = 5,
     exportSchema = false
 )
 abstract class VetDatabase : RoomDatabase() {

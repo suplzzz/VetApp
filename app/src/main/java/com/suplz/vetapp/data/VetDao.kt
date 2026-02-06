@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -29,8 +30,24 @@ interface VetDao {
     suspend fun deletePatient(patientId: Int)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun addPatient(patient: PatientDbModel): Long
+    suspend fun addPatient(patient: PatientDbModel)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun updatePatient(patient: PatientDbModel)
+    suspend fun addDoctor(doctor: DoctorDbModel)
+
+    @Query("DELETE FROM doctors WHERE id == :doctorId")
+    suspend fun deleteDoctor(doctorId: Int)
+
+    @Query("SELECT * FROM doctors ORDER BY fullName ASC")
+    fun getAllDoctors(): Flow<List<DoctorDbModel>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun addAppointment(appointment: AppointmentDbModel)
+
+    @Query("DELETE FROM appointments WHERE id == :appointmentId")
+    suspend fun deleteAppointment(appointmentId: Int)
+
+    @Transaction
+    @Query("SELECT * FROM appointments WHERE patientId == :patientId ORDER BY appointmentTime DESC")
+    fun getAppointmentsForPatient(patientId: Int): Flow<List<AppointmentWithDoctorTuple>>
 }
